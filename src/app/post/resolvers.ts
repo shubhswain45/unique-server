@@ -15,23 +15,31 @@ const queries = {
             return null; // Return null if the user is not authenticated
         }
 
-        // Fetch the first 5 posts from the database along with the likes relation
+        // Fetch the first 5 posts along with their author and likes count
         const posts = await prismaClient.post.findMany({
             take: 5, // Fetch the first 5 posts
+            include: {
+                likes: {
+                    select: {
+                        userId: true,
+                    },
+                },
+            },
         });
 
         if (!posts) {
-            return []; // Return empty array if no posts are found
+            return []; // Return an empty array if no posts are found
         }
 
         // Map the posts to include totalLikeCount and userHasLiked properties
         return posts.map(post => {
-            // const userHasLiked = post.likes.some(like => like.userId === ctx.user?.id); // Check if the current user has liked the post
+            const totalLikeCount = post.likes.length; // Count the number of likes
+            const userHasLiked = post.likes.some(like => like.userId === ctx.user?.id); // Check if the current user has liked the post
 
             return {
                 ...post,
-                totalLikeCount: 9, // Get the total number of likes
-                userHasLiked: true, // Indicate if the current user has liked the post
+                totalLikeCount,
+                userHasLiked,
             };
         });
     },
