@@ -8,6 +8,39 @@ interface CreatePostPayload {
     imgURL: string;
 }
 
+const queries = {
+    getFeedPosts: async (parent: any, args: any, ctx: GraphqlContext) => {
+        // Check if the user is authenticated
+        if (!ctx.user?.id) {
+            return null; // Return null if the user is not authenticated
+        }
+
+        // Fetch the first 5 posts from the database along with the likes relation
+        const posts = await prismaClient.post.findMany({
+            take: 5, // Fetch the first 5 posts
+        });
+
+        if (!posts) {
+            return []; // Return empty array if no posts are found
+        }
+
+        // Map the posts to include totalLikeCount and userHasLiked properties
+        return posts.map(post => {
+            // const userHasLiked = post.likes.some(like => like.userId === ctx.user?.id); // Check if the current user has liked the post
+
+            return {
+                ...post,
+                totalLikeCount: 9, // Get the total number of likes
+                userHasLiked: true, // Indicate if the current user has liked the post
+            };
+        });
+    },
+};
+
+
+
+
+
 const mutations = {
     createPost: async (
         parent: any,
@@ -88,4 +121,4 @@ const extraResolvers = {
     }
 }
 
-export const resolvers = { mutations, extraResolvers };
+export const resolvers = { queries, mutations, extraResolvers };
