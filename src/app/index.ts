@@ -6,6 +6,7 @@ import bodyParser from 'body-parser';
 import { GraphqlContext } from '../interfaces';
 import JWTService from '../services/JWTService';
 import { Auth } from './auth';
+import { Post } from './post';
 
 export async function initServer() {
     const app = express();
@@ -23,6 +24,7 @@ export async function initServer() {
     const graphqlServer = new ApolloServer<GraphqlContext>({
         typeDefs: `
             ${Auth.types}
+            ${Post.types}
 
             type Query {
                 ${Auth.queries}
@@ -30,6 +32,7 @@ export async function initServer() {
             
             type Mutation {
                 ${Auth.mutations}
+                ${Post.mutations}
             }
         `,
         resolvers: {
@@ -37,8 +40,11 @@ export async function initServer() {
                 ...Auth.resolvers.queries
             },
             Mutation: {
-                ...Auth.resolvers.mutations
-            }
+                ...Auth.resolvers.mutations,
+                ...Post.resolvers.mutations
+            },
+
+            ...Post.resolvers.extraResolvers
         },
     });
 

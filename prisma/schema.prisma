@@ -22,6 +22,19 @@ model User {
   bio             String?
   profileImageURL String?
   isVerified      Boolean
+  posts           Post[] // Relation to track posts by this user
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Post {
+  id      String  @id @default(cuid())
+  content String?
+  imgURL  String
+
+  author   User   @relation(fields: [authorId], references: [id])
+  authorId String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
