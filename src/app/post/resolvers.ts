@@ -10,19 +10,24 @@ interface CreatePostPayload {
 
 const queries = {
     getFeedPosts: async (parent: any, args: any, ctx: GraphqlContext) => {
-        // Check if the user is authenticated
+        // Ensure the user is authenticated
         if (!ctx.user?.id) {
             return null; // Return null if the user is not authenticated
         }
 
-        // Fetch the first 5 posts along with their author and likes count
+        const userId = ctx.user.id;
+
+        // Fetch the first 5 posts along with aggregated likes and a check if the user has liked each post
         const posts = await prismaClient.post.findMany({
             take: 5, // Fetch the first 5 posts
             include: {
+                author: true,
+                _count: {
+                    select: { likes: true }, // Get the count of likes as totalLikeCount
+                },
                 likes: {
-                    select: {
-                        userId: true,
-                    },
+                    where: { userId }, // Check if the specific user has liked the post
+                    select: { userId: true },
                 },
             },
         });
@@ -31,23 +36,14 @@ const queries = {
             return []; // Return an empty array if no posts are found
         }
 
-        // Map the posts to include totalLikeCount and userHasLiked properties
-        return posts.map(post => {
-            const totalLikeCount = post.likes.length; // Count the number of likes
-            const userHasLiked = post.likes.some(like => like.userId === ctx.user?.id); // Check if the current user has liked the post
-
-            return {
-                ...post,
-                totalLikeCount,
-                userHasLiked,
-            };
-        });
+        // Map the posts to format the response with totalLikeCount and userHasLiked
+        return posts.map(post => ({
+            ...post,
+            totalLikeCount: post._count.likes, // Total count of likes from Prisma
+            userHasLiked: post.likes.length > 0, // Check if the likes array has the current user's like
+        }));
     },
 };
-
-
-
-
 
 const mutations = {
     createPost: async (
