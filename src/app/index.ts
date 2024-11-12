@@ -25,7 +25,7 @@ export async function initServer() {
             ${Auth.types}
 
             type Query {
-                sayHello:String
+                ${Auth.queries}
             }
             
             type Mutation {
@@ -34,7 +34,7 @@ export async function initServer() {
         `,
         resolvers: {
             Query: {
-                sayHello: () => "Hello"
+                ...Auth.resolvers.queries
             },
             Mutation: {
                 ...Auth.resolvers.mutations

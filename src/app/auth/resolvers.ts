@@ -23,6 +23,20 @@ interface GoogleJwtPayload {
     typ: string;
 }
 
+const queries = {
+    getCurrentUser: async (parent: any, args: any, ctx: GraphqlContext) => {
+        try {
+            const id = ctx.user?.id;
+            if (!id) return null;
+
+            const user = await prismaClient.user.findUnique({ where: { id } });
+            return user;
+        } catch (error) {
+            return null;
+        }
+    }
+};
+
 const mutations = {
     loginWithGoogle: async (parent: any, { token }: { token: string }, ctx: GraphqlContext) => {
         try {
@@ -69,7 +83,7 @@ const mutations = {
                 sameSite: 'none', // Use lowercase 'lax' for local dev, 'none' for production with HTTPS
                 path: '/' // Path to which the cookie applies
             });
-            
+
 
             return userToken; // Optionally, you can still return the token in the response
         } catch (error: any) {
@@ -79,4 +93,4 @@ const mutations = {
     },
 };
 
-export const resolvers = { mutations };
+export const resolvers = { queries, mutations };
