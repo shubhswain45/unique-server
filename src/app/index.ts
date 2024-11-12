@@ -7,19 +7,21 @@ import { GraphqlContext } from '../interfaces';
 import JWTService from '../services/JWTService';
 import { Auth } from './auth';
 import { Post } from './post';
+import cookieParser from 'cookie-parser'
 
 export async function initServer() {
     const app = express();
 
     // CORS configuration
     const corsOptions = {
-        origin: ['http://localhost:3000'], // your frontend URL
+        origin: ['https://app-client-rho.vercel.app'], // your frontend URL
         credentials: true, // Ensure cookies are sent with cross-origin requests
     };
 
     // Use CORS middleware
     app.use(cors(corsOptions));
     app.use(bodyParser.json({ limit: "10mb" }))
+    app.use(cookieParser())
 
     const graphqlServer = new ApolloServer<GraphqlContext>({
         typeDefs: `
@@ -57,32 +59,15 @@ export async function initServer() {
         '/graphql',
         expressMiddleware(graphqlServer, {
             context: async ({ req, res }: { req: Request; res: Response }): Promise<GraphqlContext> => {
-                let token;
-    
-                // First, check if the cookie '__moments_token' is available
-                if (req.cookies["__moments_token"]) {
-                    token = req.cookies["__moments_token"];
-                    console.log("Token from cookie:", token);
-                }
-                // If the cookie is not available, check the Authorization header
-                else {
-                    const authHeader = req.headers.authorization;
-                    if (authHeader && authHeader.startsWith('Bearer ')) {
-                        token = authHeader.split('Bearer ')[1]; // Extract token from Authorization header
-                        console.log("Token from Authorization header:", token);
-                    }
-                }
-    
-                let user;
+                let token = req.cookies["__moments_token"];
+
+                let user = undefined;
                 if (token) {
-                    try {
-                        user = JWTService.decodeToken(token);
-                        console.log("Decoded user:", user);
-                    } catch (error) {
-                        console.error('Error decoding token:', error);
-                    }
+                    user = JWTService.decodeToken(token);
+                    console.log("decoded user", user);
+                    
                 }
-    
+
                 return {
                     user,
                     req,

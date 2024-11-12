@@ -11,12 +11,15 @@ interface CreatePostPayload {
 const queries = {
     getFeedPosts: async (parent: any, args: any, ctx: GraphqlContext) => {
         // Ensure the user is authenticated
+        console.log(ctx.user, "ctx.user");
+        
         if (!ctx.user?.id) {
             return null; // Return null if the user is not authenticated
         }
 
         const userId = ctx.user.id;
 
+        
         // Fetch the first 5 posts along with aggregated likes and a check if the user has liked each post
         const posts = await prismaClient.post.findMany({
             take: 5, // Fetch the first 5 posts
