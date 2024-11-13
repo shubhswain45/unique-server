@@ -62,25 +62,25 @@ const queries = {
 
         const userId = ctx.user.id;
 
-        // Fetch the post and include the comments
-        const postWithComments = await prismaClient.post.findUnique({
-            where: { id: postId },
-            include: {
-                comments: {
+        // // Fetch the post and include the comments
+        // const postWithComments = await prismaClient.post.findUnique({
+        //     where: { id: postId },
+        //     include: {
+        //         comments: {
                     
-                }
-            },
-        });
+        //         }
+        //     },
+        // });
 
         // If the post is not found, return null
-        if (!postWithComments) {
-            return null;
-        }
+        // if (!postWithComments) {
+        //     return null;
+        // }
 
-        console.log(postWithComments);
+        // console.log(postWithComments);
         
         // Return the comments
-        return postWithComments.comments;
+        return null
     },
 
 };
