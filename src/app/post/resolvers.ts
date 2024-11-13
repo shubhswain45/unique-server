@@ -51,6 +51,38 @@ const queries = {
             userHasLiked: post.likes.length > 0, // Check if the likes array has the current user's like
         }));
     },
+
+    getPostComments: async (parent: any, { postId }: { postId: string }, ctx: GraphqlContext) => {
+        // Ensure the user is authenticated
+        console.log(ctx.user, "ctx.user");
+
+        if (!ctx.user?.id) {
+            return null; // Return null if the user is not authenticated
+        }
+
+        const userId = ctx.user.id;
+
+        // Fetch the post and include the comments
+        const postWithComments = await prismaClient.post.findUnique({
+            where: { id: postId },
+            include: {
+                comments: {
+                    
+                }
+            },
+        });
+
+        // If the post is not found, return null
+        if (!postWithComments) {
+            return null;
+        }
+
+        console.log(postWithComments);
+        
+        // Return the comments
+        return postWithComments.comments;
+    },
+
 };
 
 const mutations = {
@@ -88,6 +120,40 @@ const mutations = {
         }
     },
 
+    deletePost: async (
+        parent: any,
+        { postId }: { postId: string },
+        ctx: GraphqlContext
+    ) => {
+        // Ensure the user is authenticated
+        try {
+            if (!ctx.user) throw new Error("Please Login/Signup first!");
+
+            const post = await prismaClient.post.findUnique({ where: { id: postId } })
+
+            if (!post) {
+                throw new Error("Post Doest exist!");
+            }
+
+            console.log(post.authorId, ctx.user.id, "----------------------------");
+
+
+            if (post.authorId.toString() != ctx.user.id.toString()) {
+                throw new Error("You cant delete someone else post!");
+            }
+
+            await prismaClient.post.delete({ where: { id: postId } })
+            console.log("post deleted succesfully");
+            return true
+
+
+        } catch (error: any) {
+            // Handle errors gracefully (Cloudinary or Prisma issues)
+            console.error("Error creating post:", error);
+            throw new Error(error.message);
+        }
+    },
+
     likePost: async (parent: any, { postId }: { postId: string }, ctx: GraphqlContext) => {
         // Ensure the user is authenticated
         if (!ctx.user) throw new Error("Please Login/Signup first");
@@ -112,7 +178,6 @@ const mutations = {
                 // Create a like entry (Prisma will automatically link the user and post)
                 await prismaClient.like.create({
                     data: {
-                        dummy: "kkkk",
                         userId: ctx.user.id,  // User ID from the context
                         postId,  // Post ID to associate the like with
                     }
@@ -141,7 +206,7 @@ const mutations = {
                 }
             })
 
-            return comment; 
+            return comment;
 
         } catch (error: any) {
             // Handle any other errors
