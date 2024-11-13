@@ -14,7 +14,7 @@ export async function initServer() {
 
     // CORS configuration
     const corsOptions = {
-        origin: ['https://app-client-rho.vercel.app'], // your frontend URL
+        origin: ['http://localhost:3000'], // your frontend URL
         credentials: true, // Ensure cookies are sent with cross-origin requests
     };
 

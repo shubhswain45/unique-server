@@ -1,4 +1,4 @@
-import { Post } from "@prisma/client";
+import { Post, Comment } from "@prisma/client";
 import { prismaClient } from "../../clients/db";
 import { GraphqlContext } from "../../interfaces";
 import { v2 as cloudinary } from 'cloudinary';
@@ -8,18 +8,23 @@ interface CreatePostPayload {
     imgURL: string;
 }
 
+interface commentPostData {
+    content: string;
+    postId: string;
+}
+
 const queries = {
     getFeedPosts: async (parent: any, args: any, ctx: GraphqlContext) => {
         // Ensure the user is authenticated
         console.log(ctx.user, "ctx.user");
-        
+
         if (!ctx.user?.id) {
             return null; // Return null if the user is not authenticated
         }
 
         const userId = ctx.user.id;
 
-        
+
         // Fetch the first 5 posts along with aggregated likes and a check if the user has liked each post
         const posts = await prismaClient.post.findMany({
             take: 5, // Fetch the first 5 posts
@@ -119,13 +124,41 @@ const mutations = {
             console.error("Error toggling like:", error);
             throw new Error(error.message || "An error occurred while toggling the like on the post.");
         }
+    },
+
+    commentPost: async (parent: any, { payload }: { payload: commentPostData }, ctx: GraphqlContext) => {
+        // Ensure the user is authenticated
+        if (!ctx.user) throw new Error("Please Login/Signup first");
+
+        const { postId, content } = payload
+        try {
+            // Attempt to delete the like (unlike the post)
+            const comment = await prismaClient.comment.create({
+                data: {
+                    postId,
+                    content,
+                    userId: ctx.user.id
+                }
+            })
+
+            return comment; 
+
+        } catch (error: any) {
+            // Handle any other errors
+            console.error("Error comment post:", error);
+            throw new Error(error.message || "An error occurred while commenting on the post.");
+        }
     }
 };
 
 const extraResolvers = {
     Post: {
         author: async (parent: Post) => await prismaClient.user.findUnique({ where: { id: parent.authorId } })
+    },
+    Comment: {
+        author: async (parent: Comment) => await prismaClient.user.findUnique({ where: { id: parent.userId } })
     }
 }
+
 
 export const resolvers = { queries, mutations, extraResolvers };

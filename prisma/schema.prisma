@@ -8,43 +8,57 @@ datasource db {
 }
 
 model User {
-  id              String  @id @default(cuid())
-  username        String  @unique
+  id              String    @id @default(cuid())
+  username        String    @unique
   fullName        String
-  email           String  @unique
+  email           String    @unique
   password        String?
   bio             String?
   profileImageURL String?
   isVerified      Boolean
-  posts           Post[] // Relation to track posts by this user
-  likes           Like[] // Relation to track likes by this user
+  posts           Post[]    // Relation to track posts by this user
+  likes           Like[]    // Relation to track likes by this user
+  comments        Comment[] // Relation to track comments by this user
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Post {
-  id      String  @id @default(cuid())
-  content String?
-  imgURL  String
+  id        String    @id @default(cuid())
+  content   String?
+  imgURL    String
 
-  author   User   @relation(fields: [authorId], references: [id])
-  authorId String
-  likes    Like[] // Relation to track likes on this post
+  author    User      @relation(fields: [authorId], references: [id])
+  authorId  String
+  likes     Like[]    // Relation to track likes on this post
+  comments  Comment[] // Relation to track comments on this post
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Like {
-  user   User   @relation(fields: [userId], references: [id])
-  userId String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
 
-  post   Post   @relation(fields: [postId], references: [id])
-  postId String
+  post      Post     @relation(fields: [postId], references: [id])
+  postId    String
 
   dummy     String
   createdAt DateTime @default(now())
 
   @@unique([userId, postId]) // Ensure that a user can like a post only once
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  post      Post     @relation(fields: [postId], references: [id])
+  postId    String
+  user    User     @relation(fields: [userId], references: [id])
+  userId  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
