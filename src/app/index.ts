@@ -8,6 +8,7 @@ import JWTService from '../services/JWTService';
 import { Auth } from './auth';
 import { Post } from './post';
 import cookieParser from 'cookie-parser'
+import { User } from './user';
 
 export async function initServer() {
     const app = express();
@@ -27,25 +28,30 @@ export async function initServer() {
         typeDefs: `
             ${Auth.types}
             ${Post.types}
+            ${User.types}
 
             type Query {
                 ${Auth.queries}
                 ${Post.queries}
+                ${User.queries}
             }
             
             type Mutation {
                 ${Auth.mutations}
                 ${Post.mutations}
+                ${User.mutations}
             }
         `,
         resolvers: {
             Query: {
                 ...Auth.resolvers.queries,
-                ...Post.resolvers.queries
+                ...Post.resolvers.queries,
+                ...User.resolvers.queries
             },
             Mutation: {
                 ...Auth.resolvers.mutations,
-                ...Post.resolvers.mutations
+                ...Post.resolvers.mutations,
+                ...User.resolvers.mutations
             },
 
             ...Post.resolvers.extraResolvers

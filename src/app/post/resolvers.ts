@@ -16,16 +16,13 @@ interface commentPostData {
 const queries = {
     getFeedPosts: async (parent: any, args: any, ctx: GraphqlContext) => {
         // Ensure the user is authenticated
-        console.log(ctx.user, "ctx.user");
-
         if (!ctx.user?.id) {
             return null; // Return null if the user is not authenticated
         }
-
+    
         const userId = ctx.user.id;
-
-
-        // Fetch the first 5 posts along with aggregated likes and a check if the user has liked each post
+    
+        // Fetch the first 5 posts along with aggregated likes and check if the user has liked and bookmarked each post
         const posts = await prismaClient.post.findMany({
             take: 5, // Fetch the first 5 posts
             include: {
@@ -37,20 +34,26 @@ const queries = {
                     where: { userId }, // Check if the specific user has liked the post
                     select: { userId: true },
                 },
+                bookmarks: {
+                    where: { userId }, // Check if the specific user has bookmarked the post
+                    select: { userId: true },
+                },
             },
         });
-
+    
         if (!posts) {
             return []; // Return an empty array if no posts are found
         }
-
-        // Map the posts to format the response with totalLikeCount and userHasLiked
+    
+        // Map the posts to format the response with totalLikeCount, userHasLiked, and bookmarked
         return posts.map(post => ({
             ...post,
             totalLikeCount: post._count.likes, // Total count of likes from Prisma
             userHasLiked: post.likes.length > 0, // Check if the likes array has the current user's like
+            bookmarked: post.bookmarks.length > 0, // Check if the bookmarks array has the current user's bookmark
         }));
     },
+    
 
     getPostComments: async (parent: any, { postId }: { postId: string }, ctx: GraphqlContext) => {
         // Ensure the user is authenticated

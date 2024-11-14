@@ -64,6 +64,7 @@ const mutations = {
                         email: data.email,
                         profileImageURL: data.picture,
                         isVerified: true,
+                        password: ""
                     }
                 });
             }
