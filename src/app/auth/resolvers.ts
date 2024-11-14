@@ -78,9 +78,9 @@ const mutations = {
             // Set the JWT token in the cookie
             ctx.res.cookie('__moments_token', userToken, {
                 httpOnly: true, // Prevents JavaScript from accessing the cookie, enhancing security
-                secure: true,  // Should be true in production to ensure cookies are sent over HTTPS only
+                secure: false,  // Should be true in production to ensure cookies are sent over HTTPS only
                 maxAge: 1000 * 60 * 60 * 24, // 1 day expiry time
-                sameSite: 'none', // 'lax' is suitable for local development; use 'none' with HTTPS in production
+                sameSite: 'lax', // 'lax' is suitable for local development; use 'none' with HTTPS in production
                 path: '/', // The cookie is available to the entire site
             });
             

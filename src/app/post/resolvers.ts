@@ -62,25 +62,25 @@ const queries = {
 
         const userId = ctx.user.id;
 
-        // // Fetch the post and include the comments
-        // const postWithComments = await prismaClient.post.findUnique({
-        //     where: { id: postId },
-        //     include: {
-        //         comments: {
+        // Fetch the post and include the comments
+        const postWithComments = await prismaClient.post.findUnique({
+            where: { id: postId },
+            include: {
+                comments: {
                     
-        //         }
-        //     },
-        // });
+                }
+            },
+        });
 
         // If the post is not found, return null
-        // if (!postWithComments) {
-        //     return null;
-        // }
+        if (!postWithComments) {
+            return null;
+        }
 
-        // console.log(postWithComments);
+        console.log(postWithComments);
         
         // Return the comments
-        return null       
+        return postWithComments.comments 
     },
 
 };
@@ -213,7 +213,27 @@ const mutations = {
             console.error("Error comment post:", error);
             throw new Error(error.message || "An error occurred while commenting on the post.");
         }
-    }
+    },
+
+    deleteCommentPost: async (
+        parent: any,
+        { commentId }: { commentId: string },
+        ctx: GraphqlContext
+    ) => {
+        // Ensure the user is authenticated
+        try {
+            if (!ctx.user) throw new Error("Please Login/Signup first!");
+
+            await prismaClient.comment.delete({ where: { id: commentId } })
+            return true
+
+
+        } catch (error: any) {
+            // Handle errors gracefully (Cloudinary or Prisma issues)
+            console.error("Error creating post:", error);
+            throw new Error(error.message);
+        }
+    },
 };
 
 const extraResolvers = {
