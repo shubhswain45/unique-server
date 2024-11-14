@@ -4,5 +4,6 @@ export const mutations = `#graphql
     likePost(postId: String!): Boolean!
     commentPost(payload: commentPostData!): Comment!
     deleteCommentPost(commentId: String!): Boolean!
+    bookMarkPost(postId: String!): Boolean!
 `
 
