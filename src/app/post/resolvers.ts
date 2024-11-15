@@ -19,9 +19,9 @@ const queries = {
         if (!ctx.user?.id) {
             return null; // Return null if the user is not authenticated
         }
-    
+
         const userId = ctx.user.id;
-    
+
         // Fetch the first 5 posts along with aggregated likes and check if the user has liked and bookmarked each post
         const posts = await prismaClient.post.findMany({
             take: 5, // Fetch the first 5 posts
@@ -40,11 +40,11 @@ const queries = {
                 },
             },
         });
-    
+
         if (!posts) {
             return []; // Return an empty array if no posts are found
         }
-    
+
         // Map the posts to format the response with totalLikeCount, userHasLiked, and bookmarked
         return posts.map(post => ({
             ...post,
@@ -53,7 +53,7 @@ const queries = {
             bookmarked: post.bookmarks.length > 0, // Check if the bookmarks array has the current user's bookmark
         }));
     },
-    
+
 
     getPostComments: async (parent: any, { postId }: { postId: string }, ctx: GraphqlContext) => {
         // Ensure the user is authenticated
@@ -86,6 +86,49 @@ const queries = {
         return postWithComments.comments
     },
 
+    getUserPosts: async (
+        parent: any,
+        { username }: { username: string },
+        ctx: GraphqlContext
+    ) => {
+        try {
+            // Fetch and sort posts by creation date in descending order
+            const posts = await prismaClient.post.findMany({
+                where: { author: { username } },
+                orderBy: {
+                    createdAt: "desc", // Sort by createdAt in descending order
+                },
+                include: {
+                    author: true,
+                    _count: {
+                        select: { likes: true }, // Get the count of likes as totalLikeCount
+                    },
+                    likes: {
+                        where: { userId: ctx.user?.id }, // Check if the specific user has liked the post
+                        select: { userId: true },
+                    },
+                    bookmarks: {
+                        where: { userId: ctx.user?.id }, // Check if the specific user has bookmarked the post
+                        select: { userId: true },
+                    },
+                },
+            });
+
+
+            return posts.map(post => ({
+                ...post,
+                totalLikeCount: post._count.likes, // Total count of likes from Prisma
+                userHasLiked: post.likes.length > 0, // Check if the likes array has the current user's like
+                bookmarked: post.bookmarks.length > 0, // Check if the bookmarks array has the current user's bookmark
+            }));
+        } catch (error) {
+            // Log the error for debugging
+            console.error("Error fetching user posts:", error);
+
+            // Throw a generic error message to the client
+            throw new Error("Failed to fetch user posts. Please try again.");
+        }
+    }
 };
 
 const mutations = {

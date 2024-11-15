@@ -4,6 +4,7 @@ export const types = `#graphql
         username: String!
         fullName: String!
         profileImageURL: String
+        bio: String
         totalPosts: Int!
         totalFollowers: Int!
         totalFollowings: Int!
