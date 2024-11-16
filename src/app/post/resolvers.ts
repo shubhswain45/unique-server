@@ -128,7 +128,56 @@ const queries = {
             // Throw a generic error message to the client
             throw new Error("Failed to fetch user posts. Please try again.");
         }
+    },
+
+    getPostById: async (
+        parent: any,
+        { postId }: { postId: string },
+        ctx: GraphqlContext
+    ) => {
+        try {
+            // Fetch the post along with related data
+            const post = await prismaClient.post.findUnique({
+                where: { id: postId },
+                include: {
+                    author: true,
+                    _count: {
+                        select: { likes: true, comments: true }, // Get the count of likes and comments
+                    },
+                    likes: {
+                        where: { userId: ctx.user?.id }, // Check if the specific user has liked the post
+                        select: { userId: true },
+                    },
+                    bookmarks: {
+                        where: { userId: ctx.user?.id }, // Check if the specific user has bookmarked the post
+                        select: { userId: true },
+                    },
+                    comments: {
+                        orderBy: { createdAt: 'desc' }, // Order comments by createdAt in descending order
+                    },
+                },
+            });
+    
+            if (!post) {
+                return null;
+            }
+    
+            return {
+                ...post,
+                totalLikeCount: post?._count?.likes, // Total count of likes from Prisma
+                totalCommentCount: post?._count?.comments, // Total count of comments from Prisma
+                userHasLiked: post?.likes?.length > 0, // Check if the user has liked the post
+                bookmarked: post?.bookmarks?.length > 0, // Check if the user has bookmarked the post
+                comments: post.comments, // Include the top 5 comments
+            };
+    
+        } catch (error) {
+            // Log the error for debugging
+            console.error("Error fetching post:", error);
+            throw new Error("Failed to fetch the post. Please try again.");
+        }
     }
+    
 };
 
 const mutations = {
