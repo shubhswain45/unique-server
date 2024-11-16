@@ -14,43 +14,49 @@ interface commentPostData {
 }
 
 const queries = {
-    getFeedPosts: async (parent: any, args: any, ctx: GraphqlContext) => {
-        // Ensure the user is authenticated
-        if (!ctx.user?.id) {
-            return null; // Return null if the user is not authenticated
+    getFeedPosts: async (parent: any, { take, cursor }: { take: number, cursor: string }, ctx: GraphqlContext) => {
+        if (!ctx.user) {
+            return null;
         }
 
         const userId = ctx.user.id;
 
-        // Fetch the first 5 posts along with aggregated likes and check if the user has liked and bookmarked each post
+        // Fetch posts by users whom the current user follows
         const posts = await prismaClient.post.findMany({
-            take: 5, // Fetch the first 5 posts
+            where: {
+                author: {
+                    followers: {
+                        some: {
+                            followerId: userId, // Match users followed by the current user
+                        },
+                    },
+                },
+            },
+            orderBy: { createdAt: "desc" }, // Order by most recent posts
             include: {
-                author: true,
                 _count: {
-                    select: { likes: true }, // Get the count of likes as totalLikeCount
+                    select: { likes: true }, // Count likes
                 },
                 likes: {
-                    where: { userId }, // Check if the specific user has liked the post
+                    where: { userId }, // Check if the user has liked the post
                     select: { userId: true },
                 },
                 bookmarks: {
-                    where: { userId }, // Check if the specific user has bookmarked the post
+                    where: { userId }, // Check if the user has bookmarked the post
                     select: { userId: true },
                 },
             },
+            take,  // Limit the number of posts (5 in this case)
+            skip: cursor ? 1 : 0,  // Skip the cursor post if it exists
+            cursor: cursor ? { id: cursor } : undefined,  // Set cursor for pagination
         });
 
-        if (!posts) {
-            return []; // Return an empty array if no posts are found
-        }
-
-        // Map the posts to format the response with totalLikeCount, userHasLiked, and bookmarked
-        return posts.map(post => ({
+        // Map the posts to include totalLikeCount, userHasLiked, and bookmarked status
+        return posts.map((post) => ({
             ...post,
-            totalLikeCount: post._count.likes, // Total count of likes from Prisma
-            userHasLiked: post.likes.length > 0, // Check if the likes array has the current user's like
-            bookmarked: post.bookmarks.length > 0, // Check if the bookmarks array has the current user's bookmark
+            totalLikeCount: post._count.likes,
+            userHasLiked: post.likes.length > 0,
+            bookmarked: post.bookmarks.length > 0,
         }));
     },
 
@@ -157,11 +163,11 @@ const queries = {
                     },
                 },
             });
-    
+
             if (!post) {
                 return null;
             }
-    
+
             return {
                 ...post,
                 totalLikeCount: post?._count?.likes, // Total count of likes from Prisma
@@ -170,14 +176,14 @@ const queries = {
                 bookmarked: post?.bookmarks?.length > 0, // Check if the user has bookmarked the post
                 comments: post.comments, // Include the top 5 comments
             };
-    
+
         } catch (error) {
             // Log the error for debugging
             console.error("Error fetching post:", error);
             throw new Error("Failed to fetch the post. Please try again.");
         }
     }
-    
+
 };
 
 const mutations = {

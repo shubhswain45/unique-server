@@ -25,9 +25,11 @@ model User {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  // Relations to Followers and Followings through the join model
-  following       Follow[]  @relation("Following") // Relation to users being followed
-  followers       Follow[]  @relation("Follower")  // Relation to users who follow
+  // Relations to Followers and Followings through the Follow model
+  followings       Follow[]  @relation("Follower")  // Users this user is following
+  followers       Follow[]  @relation("Following")  // Users following this user
+  
+  @@index([username])  // Index for fast lookup of users by username
 }
 
 model Post {
@@ -43,6 +45,9 @@ model Post {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([authorId])  // Index for fast lookup of posts by author
+  @@index([createdAt]) // Index for fast sorting by createdAt (to handle most recent posts)
 }
 
 model Like {
@@ -55,6 +60,8 @@ model Like {
   createdAt DateTime @default(now())
 
   @@unique([userId, postId]) // Ensure that a user can like a post only once
+  @@index([userId])  // Index for fast lookup of likes by user
+  @@index([postId])  // Index for fast lookup of likes by post
 }
 
 model Comment {
@@ -69,6 +76,9 @@ model Comment {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([postId])  // Index for fast lookup of comments by post
+  @@index([userId])  // Index for fast lookup of comments by user
 }
 
 model BookMark {
@@ -83,7 +93,9 @@ model BookMark {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([userId, postId]) // Ensure that a user can like a post only once
+  @@unique([userId, postId]) // Ensure that a user can bookmark a post only once
+  @@index([userId])  // Index for fast lookup of bookmarks by user
+  @@index([postId])  // Index for fast lookup of bookmarks by post
 }
 
 model Follow {
@@ -97,4 +109,41 @@ model Follow {
   createdAt   DateTime @default(now())
 
   @@unique([followerId, followingId]) // Ensure a user cannot follow the same user multiple times
+  @@index([followerId])  // Index for fast lookup of follows by followerId
+  @@index([followingId]) // Index for fast lookup of follows by followingId
 }
+
+//nitesh followers
+
+// model User {
+//   id              123    @id @default(cuid())
+//   username        shubh    @unique
+//   fullName        shubhkant
+//   // Relations to Followers and Followings through the Follow model
+//   following       Follow[]  @relation("Follower")  // Users this user is following
+//   followers       Follow[]  @relation("Following")  // Users following this user
+// }
+
+// model User {
+//   id              456    @id @default(cuid())
+//   username        nitesh    @unique
+//   fullName        nitesh kumar
+//   // Relations to Followers and Followings through the Follow model
+//   following       Follow[]  @relation("Follower")  // Users this user is following
+//   followers       Follow[]  @relation("Following")  // Users following this user
+// }
+
+// model Follow {
+//   id          uuuuuuuuuu
+//   followerId  123
+//   followingId 456
+
+//   follower    User     @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+//   following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+//   createdAt   DateTime @default(now())
+
+//   @@unique([followerId, followingId]) // Ensure a user cannot follow the same user multiple times
+//   @@index([followerId])  // Index for fast lookup of follows by followerId
+//   @@index([followingId]) // Index for fast lookup of follows by followingId
+// }

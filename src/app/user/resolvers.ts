@@ -23,13 +23,13 @@ export const queries = {
                         select: {
                             posts: true,
                             followers: true,
-                            following: true,
+                            followings: true,
                         },
                     },
                     // Fetch follow relationship with the current user
                     followers: {
                         where: {
-                            followingId: currentUserId
+                            followerId: currentUserId
                         },
                         take: 1, // We only need to know if there is one match
                     },
@@ -43,7 +43,7 @@ export const queries = {
             // Calculate the total number of posts, followers, and followings from the counts
             const totalPosts = user._count.posts;
             const totalFollowers = user._count.followers;
-            const totalFollowings = user._count.following;
+            const totalFollowings = user._count.followings;
 
             // Check if the current user follows this profile
             const followed = user.followers.length > 0;
