@@ -10,6 +10,10 @@ input commentPostData {
     postId: String!
 }
 
+input paginationPayload {
+    take: Int!
+    cursor: String
+}
 type Comment {
     id: String!
     content: String
@@ -27,6 +31,12 @@ type Post {
     totalLikeCount: Int!  # Total number of likes for the post
     bookmarked: Boolean!  # Total number of likes for the post
     userHasLiked: Boolean!  # Indicates whether the authenticated user has liked the post
+}
+
+type getFeedPostsResponse {
+    posts: [Post]
+    nextCursor: String
+    hasMore: Boolean!
 }
 
 type getPostByIdResponse {

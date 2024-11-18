@@ -13,52 +13,77 @@ interface commentPostData {
     postId: string;
 }
 
+interface paginationPayload {
+    take: number
+    cursor: string
+}
 const queries = {
-    getFeedPosts: async (parent: any, { take, cursor }: { take: number, cursor: string }, ctx: GraphqlContext) => {
+    //[1,2,3,4,5,6,7,8,9,10,11,12]
+    getFeedPosts: async (parent: any, { payload }: { payload: paginationPayload }, ctx: GraphqlContext) => {
         if (!ctx.user) {
-            return null;
+            return null; // Ensure the user is authenticated
         }
 
-        const userId = ctx.user.id;
+        const { take, cursor } = payload
+        const userId = ctx.user.id; // Current user ID
 
-        // Fetch posts by users whom the current user follows
-        const posts = await prismaClient.post.findMany({
-            where: {
-                author: {
-                    followers: {
-                        some: {
-                            followerId: userId, // Match users followed by the current user
+        try {
+            // Fetch posts by users whom the current user follows
+            const posts = await prismaClient.post.findMany({
+                where: {
+                    author: {
+                        followers: {
+                            some: {
+                                followerId: userId, // Match users followed by the current user
+                            },
                         },
                     },
                 },
-            },
-            orderBy: { createdAt: "desc" }, // Order by most recent posts
-            include: {
-                _count: {
-                    select: { likes: true }, // Count likes
+                orderBy: { createdAt: "desc" }, // Order by most recent posts
+                include: {
+                    _count: {
+                        select: { likes: true }, // Count likes on the post
+                    },
+                    likes: {
+                        where: { userId }, // Check if the current user liked the post
+                        select: { userId: true },
+                    },
+                    bookmarks: {
+                        where: { userId }, // Check if the current user bookmarked the post
+                        select: { userId: true },
+                    },
                 },
-                likes: {
-                    where: { userId }, // Check if the user has liked the post
-                    select: { userId: true },
-                },
-                bookmarks: {
-                    where: { userId }, // Check if the user has bookmarked the post
-                    select: { userId: true },
-                },
-            },
-            take,  // Limit the number of posts (5 in this case)
-            skip: cursor ? 1 : 0,  // Skip the cursor post if it exists
-            cursor: cursor ? { id: cursor } : undefined,  // Set cursor for pagination
-        });
+                take: take + 1, // Fetch one extra post to check for more pages
+                skip: cursor ? 1 : 0, // Skip the cursor post if it exists
+                cursor: cursor ? { id: cursor } : undefined, // Apply pagination cursor
+            });
 
-        // Map the posts to include totalLikeCount, userHasLiked, and bookmarked status
-        return posts.map((post) => ({
-            ...post,
-            totalLikeCount: post._count.likes,
-            userHasLiked: post.likes.length > 0,
-            bookmarked: post.bookmarks.length > 0,
-        }));
+            // Check if there are more posts
+            const hasMore = posts.length > take;
+            if (hasMore) {
+                posts.pop(); // Remove the extra post used for pagination check
+            }
+
+            const nextCursor = posts.length > 0 ? posts[posts.length - 1].id : null; // Set next cursor
+
+            // Map posts to include calculated fields
+            return {
+                posts: posts.map((post) => ({
+                    ...post,
+                    totalLikeCount: post._count.likes, // Total likes count
+                    userHasLiked: post.likes.length > 0, // If the user liked the post
+                    bookmarked: post.bookmarks.length > 0, // If the user bookmarked the post
+                })),
+                nextCursor, // Return the cursor for the next page
+                hasMore, // Boolean indicating if there are more posts
+            };
+        } catch (error) {
+            console.error("Error fetching feed posts:", error);
+            throw new Error("Failed to fetch feed posts.");
+        }
     },
+
+
 
 
     getPostComments: async (parent: any, { postId }: { postId: string }, ctx: GraphqlContext) => {
