@@ -80,8 +80,8 @@ export const mutations = {
             await prismaClient.follow.delete({
                 where: {
                     followerId_followingId: {
-                        followerId: userId,
-                        followingId: ctx.user.id
+                        followerId: ctx.user.id,
+                        followingId: userId
                     }
                 }
             });
@@ -95,8 +95,8 @@ export const mutations = {
                 // Create a like entry (Prisma will automatically link the user and post)
                 await prismaClient.follow.create({
                     data: {
-                        followerId: userId,
-                        followingId: ctx.user.id
+                        followerId: ctx.user.id,
+                        followingId: userId
                     }
                 });
                 return true; // followed
