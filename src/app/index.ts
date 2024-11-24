@@ -14,8 +14,8 @@ export async function initServer() {
     const app = express();
 
     // CORS configuration
-    const corsOptions = {
-        origin: ['https://dummy-shubh.vercel.app'], // your frontend URL
+    const corsOptions = { 
+        origin: ['https://dummy-x818.vercel.app'], // your frontend URL
         credentials: true, // Ensure cookies are sent with cross-origin requests
     };
 
