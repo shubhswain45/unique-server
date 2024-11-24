@@ -193,15 +193,28 @@ const queries = {
                 return null;
             }
 
-            return {
+            console.log({
                 ...post,
                 totalLikeCount: post?._count?.likes, // Total count of likes from Prisma
                 totalCommentCount: post?._count?.comments, // Total count of comments from Prisma
                 userHasLiked: post?.likes?.length > 0, // Check if the user has liked the post
                 bookmarked: post?.bookmarks?.length > 0, // Check if the user has bookmarked the post
                 comments: post.comments, // Include the top 5 comments
+            });
+
+            return {
+                id: post.id,
+                content: post.content,
+                imgURL: post.imgURL,
+                author: post.author,
+                totalLikeCount: post?._count?.likes, // Total count of likes from Prisma
+                totalCommentCount: post?._count?.comments, // Total count of comments from Prisma
+                bookmarked: post?.bookmarks?.length > 0, // Check if the user has bookmarked the post
+                userHasLiked: post?.likes?.length > 0, // Check if the user has liked the post
+                comments: post.comments, // Include the top 5 comments
             };
 
+            
         } catch (error) {
             // Log the error for debugging
             console.error("Error fetching post:", error);
@@ -217,15 +230,15 @@ const mutations = {
         { payload }: { payload: CreatePostPayload },
         ctx: GraphqlContext
     ) => {
-        // Ensure the user is authenticated
-        if (!ctx.user) throw new Error("Please Login/Signup first!");
-
-        const { imgURL, content } = payload;
-
-        // Validate the image URL before uploading
-        if (!imgURL) throw new Error("Image URL is required");
-
         try {
+            // Ensure the user is authenticated
+            if (!ctx.user) throw new Error("Please Login/Signup first!");
+
+            const { imgURL, content } = payload;
+            // Validate the image URL before uploading
+            if (!imgURL) throw new Error("Image URL is required");
+
+
             // Upload image to Cloudinary
             const uploadResult = await cloudinary.uploader.upload(imgURL);
 
@@ -239,10 +252,10 @@ const mutations = {
             });
 
             return post; // Return the created post
-        } catch (error) {
+        } catch (error: any) {
             // Handle errors gracefully (Cloudinary or Prisma issues)
-            console.error("Error creating post:", error);
-            throw new Error("Failed to create post. Please try again.");
+            console.error("Error toggling like:", error);
+            throw new Error(error.message || "An error occurred while toggling the like on the post.");
         }
     },
 
@@ -251,8 +264,8 @@ const mutations = {
         { postId }: { postId: string },
         ctx: GraphqlContext
     ) => {
-        // Ensure the user is authenticated
         try {
+            // Ensure the user is authenticated
             if (!ctx.user) throw new Error("Please Login/Signup first!");
 
             const post = await prismaClient.post.findUnique({ where: { id: postId } })
@@ -261,30 +274,28 @@ const mutations = {
                 throw new Error("Post Doest exist!");
             }
 
-            console.log(post.authorId, ctx.user.id, "----------------------------");
-
-
             if (post.authorId.toString() != ctx.user.id.toString()) {
                 throw new Error("You cant delete someone else post!");
             }
 
             await prismaClient.post.delete({ where: { id: postId } })
-            console.log("post deleted succesfully");
+
             return true
 
 
         } catch (error: any) {
             // Handle errors gracefully (Cloudinary or Prisma issues)
-            console.error("Error creating post:", error);
-            throw new Error(error.message);
+            console.error("Error toggling like:", error);
+            throw new Error(error.message || "An error occurred while toggling the like on the post.");
         }
     },
 
     likePost: async (parent: any, { postId }: { postId: string }, ctx: GraphqlContext) => {
-        // Ensure the user is authenticated
-        if (!ctx.user) throw new Error("Please Login/Signup first");
 
         try {
+            // Ensure the user is authenticated
+            if (!ctx.user) throw new Error("Please Login/Signup first");
+
             // Attempt to delete the like (unlike the post)
             await prismaClient.like.delete({
                 where: {
@@ -304,25 +315,26 @@ const mutations = {
                 // Create a like entry (Prisma will automatically link the user and post)
                 await prismaClient.like.create({
                     data: {
-                        userId: ctx.user.id,  // User ID from the context
+                        userId: ctx?.user?.id || "",  // User ID from the context
                         postId,  // Post ID to associate the like with
                     }
                 });
                 return true; // Post was liked
             }
 
-            // Handle any other errors
-            console.error("Error toggling like:", error);
-            throw new Error(error.message || "An error occurred while toggling the like on the post.");
+           // Handle errors gracefully (Cloudinary or Prisma issues)
+           console.error("Error toggling like:", error);
+           throw new Error(error.message || "An error occurred while toggling the like on the post.");
         }
     },
 
     commentPost: async (parent: any, { payload }: { payload: commentPostData }, ctx: GraphqlContext) => {
-        // Ensure the user is authenticated
-        if (!ctx.user) throw new Error("Please Login/Signup first");
-
-        const { postId, content } = payload
         try {
+            // Ensure the user is authenticated
+            if (!ctx.user) throw new Error("Please Login/Signup first");
+
+            const { postId, content } = payload
+
             // Attempt to delete the like (unlike the post)
             const comment = await prismaClient.comment.create({
                 data: {
@@ -362,10 +374,11 @@ const mutations = {
     },
 
     bookMarkPost: async (parent: any, { postId }: { postId: string }, ctx: GraphqlContext) => {
-        // Ensure the user is authenticated
-
-        if (!ctx.user) throw new Error("Please Login/Signup first");
+        
         try {
+            // Ensure the user is authenticated
+            if (!ctx.user) throw new Error("Please Login/Signup first");
+
             // Attempt to delete the like (unlike the post)
             await prismaClient.bookMark.delete({
                 where: {
@@ -385,7 +398,7 @@ const mutations = {
                 // Create a like entry (Prisma will automatically link the user and post)
                 await prismaClient.bookMark.create({
                     data: {
-                        userId: ctx?.user.id,  // User ID from the context
+                        userId: ctx?.user?.id || "",  // User ID from the context
                         postId,  // Post ID to associate the like with
                     }
                 });

@@ -3,12 +3,14 @@ import { GraphqlContext } from "../../interfaces";
 
 export const queries = {
     getUserProfile: async (
-        parent: any, 
-        { username }: { username: string }, 
+        parent: any,
+        { username }: { username: string },
         ctx: GraphqlContext
     ) => {
         try {
             const currentUserId = ctx.user?.id; // Assuming the current user's ID is available in ctx (e.g., from session or JWT)
+
+            console.log("currentUserId", currentUserId);
 
             // Fetch the user from Prisma with only necessary fields and count of relations
             const user = await prismaClient.user.findUnique({
@@ -26,18 +28,19 @@ export const queries = {
                             followings: true,
                         },
                     },
-                    // Fetch follow relationship with the current user
-                    followers: {
-                        where: {
-                            followerId: currentUserId
-                        },
-                        take: 1, // We only need to know if there is one match
-                    },
+                    // Fetch follow relationship with the current user only if `currentUserId` exists
+                    followers: currentUserId
+                        ? {
+                            where: {
+                                followerId: currentUserId,
+                            },
+                        }
+                        : undefined,
                 },
             });
 
             if (!user) {
-                throw new Error('User not found');
+                return null
             }
 
             // Calculate the total number of posts, followers, and followings from the counts
@@ -45,8 +48,8 @@ export const queries = {
             const totalFollowers = user._count.followers;
             const totalFollowings = user._count.followings;
 
-            // Check if the current user follows this profile
-            const followed = user.followers.length > 0;
+            // Check if the current user follows this profile (only if followers relationship was queried)
+            const followed = currentUserId ? user.followers.length > 0 : false;
 
             // Return the transformed data in the required format
             return {
@@ -60,9 +63,10 @@ export const queries = {
                 totalFollowings,
                 followed, // This is now a boolean based on whether the current user follows
             };
-        } catch (error) {
-            console.error(error);
-            throw new Error('Failed to fetch user profile');
+        } catch (error: any) {
+            // Handle any other errors
+            console.error("Error toggling like:", error);
+            throw new Error(error.message || "An error occurred while toggling the like on the post.");
         }
     },
 };
@@ -70,12 +74,12 @@ export const queries = {
 
 
 
+
 export const mutations = {
     followUser: async (parent: any, { userId }: { userId: string }, ctx: GraphqlContext) => {
         // Ensure the user is authenticated
-        if (!ctx.user) throw new Error("Please Login/Signup first");
-
         try {
+            if (!ctx.user) throw new Error("Please Login/Signup first");
             // Attempt to delete the like (unlike the post)
             await prismaClient.follow.delete({
                 where: {
@@ -95,7 +99,7 @@ export const mutations = {
                 // Create a like entry (Prisma will automatically link the user and post)
                 await prismaClient.follow.create({
                     data: {
-                        followerId: ctx.user.id,
+                        followerId: ctx?.user?.id || "",
                         followingId: userId
                     }
                 });
